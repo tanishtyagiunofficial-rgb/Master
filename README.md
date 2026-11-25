@@ -7,6 +7,10 @@ An Android app that works out a cab fare with separate day and night rates and k
 - **Day and night fare.** Each has its own base fare, included distance, per-km rate and waiting charge. The app picks the right one from the clock (night is 10 PM to 6 AM by default), and you can force Day or Night for a single trip.
 - **Add trip button.** One tap saves the trip with the current date, time and fare. You can also set a different date and time for a trip you forgot to log.
 - **Two ways to set the fare.** Calculate it from distance, waiting time and extras such as toll or parking, or just type the amount.
+- **Calendar.** A month view where every date shows a small indicator: the total fare for that date, plus a dot for day-fare trips and a dot for night-fare trips. Tap a date to see its trips.
+- **Add a fare to any past or present date.** Pick a date on the calendar and add a fare to it. Future dates are blocked.
+- **Add fare now.** One button stamps a fare with the exact current date and time.
+- **Month total popup.** Tap the month total to see the total fare for the month, the day/night split, fare by date, and the best day.
 - **Trip log.** Trips are grouped by day with totals for today, this week and this month. Delete a trip (with undo) or share the whole log as CSV text.
 - **Your rates.** Change every rate, the night hours, the currency symbol and rounding on the Rates tab.
 

@@ -13,9 +13,16 @@
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2z" fill="currentColor"/></symbol>
   <symbol id="i-meter" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17l4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8.5" cy="15" r="1.4" fill="currentColor"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6.5h12M8 12h12M8 17.5h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="17.5" r="1.3" fill="currentColor"/></symbol>
   <symbol id="i-rates" viewBox="0 0 24 24"><path d="M5 7h14M5 17h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2.6" fill="var(--nav-bg)" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="17" r="2.6" fill="var(--nav-bg)" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.8h4V7M7 7l.8 12h8.4L17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z" fill="currentColor"/></symbol>
 </svg>
 
 <main id="app">
@@ -23,11 +30,37 @@
   <!-- ============ FARE ============ -->
   <section class="view" id="view-fare">
     <header class="hero" id="hero">
+      <!-- decorative sky, skyline and cab -->
+      <div class="scene" aria-hidden="true">
+        <div class="stars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="orb">
+          <svg class="orb-sun" viewBox="0 0 100 100"><g class="rays" stroke-width="5" stroke-linecap="round"><path d="M50 4v11M50 85v11M4 50h11M85 50h11M17.5 17.5l7.8 7.8M74.7 74.7l7.8 7.8M17.5 82.5l7.8-7.8M74.7 25.3l7.8-7.8"/></g><circle cx="50" cy="50" r="22"/></svg>
+          <svg class="orb-moon" viewBox="0 0 100 100"><path d="M78 60A34 34 0 0 1 40 18a34 34 0 1 0 38 42z"/></svg>
+        </div>
+        <div class="cloud cloud-a"></div>
+        <div class="cloud cloud-b"></div>
+        <svg class="skyline" viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice">
+          <path class="sky-far" d="M0 60V34h14V22h18v12h10V14h22v20h12V26h16v8h14V8h8v-5h4v5h8v26h14V20h20v14h10V28h18v6h12V12h24v22h12V24h16v10h10V16h20v18h14V30h18v4h12V18h22v16h4v26z"/>
+          <path class="sky-near" d="M0 60V44h24V34h20v10h18V30h10v-6h8v6h10v14h26V38h22v6h16V28h26v16h20V36h18v8h24V32h12v-5h8v5h10v12h22V40h20v4h26V34h18v10h22v16z"/>
+          <g class="windows"><rect x="50" y="38" width="3" height="3"/><rect x="66" y="35" width="3" height="3"/><rect x="74" y="42" width="3" height="3"/><rect x="118" y="42" width="3" height="3"/><rect x="152" y="33" width="3" height="3"/><rect x="160" y="40" width="3" height="3"/><rect x="204" y="41" width="3" height="3"/><rect x="250" y="37" width="3" height="3"/><rect x="258" y="44" width="3" height="3"/><rect x="298" y="44" width="3" height="3"/><rect x="346" y="39" width="3" height="3"/><rect x="354" y="46" width="3" height="3"/></g>
+        </svg>
+        <div class="road"></div>
+        <svg class="cab" viewBox="0 0 64 30">
+          <path class="cab-beam" d="M60 17l34-7v18z"/>
+          <rect class="cab-sign" x="26" y="1" width="12" height="5" rx="1.5"/>
+          <path class="cab-body" d="M4 22v-5c0-2 1.400-3.400 3.400-3.800L16 12l5.500-5.400C22.600 5.600 24 5 25.500 5h14c1.600 0 3 .7 4 1.900L48 12l8.800 1.600c2 .4 3.200 1.800 3.200 3.800V22c0 1.100-.9 2-2 2H6c-1.100 0-2-.9-2-2z"/>
+          <path class="cab-glass" d="M20 12l3.800-3.800c.4-.4.9-.6 1.400-.6H31v4.400zM33.500 7.600h5.600c.6 0 1.200.3 1.600.8L43.800 12H33.500z"/>
+          <path class="cab-check" d="M18 15h4v2.500h-4zM26 15h4v2.500h-4zM34 15h4v2.500h-4zM42 15h4v2.500h-4z"/>
+          <circle class="cab-wheel" cx="17" cy="24" r="4.500"/><circle class="cab-wheel" cx="47" cy="24" r="4.500"/>
+          <circle class="cab-hub" cx="17" cy="24" r="1.600"/><circle class="cab-hub" cx="47" cy="24" r="1.600"/>
+        </svg>
+      </div>
+
       <div class="hero-top">
         <span class="tariff-chip" id="tariffChip"></span>
-        <span class="hero-clock" id="heroClock"></span>
+        <button type="button" class="month-pill" id="heroMonth" aria-haspopup="dialog"></button>
       </div>
-      <div class="hero-label">Fare</div>
+      <div class="hero-label" id="heroLabel"></div>
       <div class="hero-total" id="heroTotal" aria-live="polite"></div>
       <div class="hero-sub" id="heroSub"></div>
     </header>
@@ -91,7 +124,34 @@
     </div>
 
     <div class="action-bar">
-      <button type="button" class="primary" id="addBtn"></button>
+      <button type="button" class="primary" id="addBtn"><span id="addBtnText"></span></button>
+    </div>
+  </section>
+
+  <!-- ============ CALENDAR ============ -->
+  <section class="view" id="view-calendar" hidden>
+    <header class="bar"><h1>Calendar</h1><button type="button" class="bar-btn" id="calToday">Today</button></header>
+    <div class="content">
+      <div class="card cal-card">
+        <div class="cal-head">
+          <button type="button" class="icon-btn" id="calPrev" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+          <button type="button" class="cal-title" id="calTitle" aria-haspopup="dialog"></button>
+          <button type="button" class="icon-btn" id="calNext" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+        </div>
+        <div class="cal-week" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend" aria-hidden="true">
+          <span><i class="dot dot-day"></i>Day fare</span>
+          <span><i class="dot dot-night"></i>Night fare</span>
+          <span class="cal-legend-note">Number = total that date</span>
+        </div>
+      </div>
+
+      <div class="day-panel" id="dayPanel"></div>
+    </div>
+
+    <div class="action-bar">
+      <button type="button" class="primary primary-lamp" id="fabNow"><svg class="ic"><use href="#i-bolt"/></svg><span>Add fare now</span></button>
     </div>
   </section>
 
@@ -133,12 +193,72 @@
 
 <nav class="nav" id="nav">
   <button type="button" data-view="fare"><svg class="ic"><use href="#i-meter"/></svg><span>Fare</span></button>
+  <button type="button" data-view="calendar"><svg class="ic"><use href="#i-cal"/></svg><span>Calendar</span></button>
   <button type="button" data-view="trips"><svg class="ic"><use href="#i-list"/></svg><span>Trips</span><b class="badge" id="navBadge" hidden></b></button>
   <button type="button" data-view="rates"><svg class="ic"><use href="#i-rates"/></svg><span>Rates</span></button>
 </nav>
 
 <div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button type="button" id="toastAction" hidden></button></div>
 
+<!-- ============ ADD FARE SHEET ============ -->
+<div class="scrim" id="addSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="addTitle"></h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="stamp" id="addStamp"></div>
+
+    <label class="amount">
+      <span class="cur"></span>
+      <input id="addAmount" type="number" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off" aria-label="Fare amount">
+    </label>
+
+    <div class="sheet-row" id="addWhen">
+      <label><span>Date</span><input id="addDate" type="date"></label>
+      <label><span>Time</span><input id="addTime" type="time"></label>
+    </div>
+
+    <div class="segmented" id="addTariffSeg" role="radiogroup" aria-label="Tariff">
+      <button type="button" role="radio" data-value="auto">Auto</button>
+      <button type="button" role="radio" data-value="day">Day</button>
+      <button type="button" role="radio" data-value="night">Night</button>
+    </div>
+
+    <input id="addNote" class="note sheet-note" type="text" maxlength="60" placeholder="Note (optional)" autocomplete="off" aria-label="Note">
+    <div class="sheet-error" id="addError" role="alert" hidden></div>
+    <button type="button" class="primary" id="addSave"></button>
+  </div>
+</div>
+
+<!-- ============ MONTH SUMMARY POPUP ============ -->
+<div class="scrim scrim-center" id="monthPop" hidden>
+  <div class="pop" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+    <button type="button" class="icon-btn pop-close" data-close aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+    <div class="pop-head">
+      <div class="pop-kicker">Total fare</div>
+      <h2 id="popTitle"></h2>
+      <div class="pop-total" id="popTotal"></div>
+      <div class="pop-sub" id="popSub"></div>
+    </div>
+
+    <div id="popBody">
+      <div class="split" id="popSplit"></div>
+      <div class="split-legend" id="popLegend"></div>
+
+      <div class="chart-title">Fare by date</div>
+      <div class="chart" id="popChart"></div>
+      <div class="chart-axis" id="popAxis"></div>
+      <div class="chart-tip" id="popTip"></div>
+
+      <div class="stats" id="popStats"></div>
+    </div>
+    <div class="pop-empty" id="popEmpty" hidden>No fares saved in this month yet.</div>
+  </div>
+</div>
+
+<!-- ============ CONFIRM ============ -->
 <div class="scrim" id="confirm" hidden>
   <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
     <h2 id="confirmTitle"></h2>
