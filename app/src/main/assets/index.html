@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<title>Cab Fare</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2z" fill="currentColor"/></symbol>
+  <symbol id="i-meter" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17l4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6.5h12M8 12h12M8 17.5h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="17.5" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="i-rates" viewBox="0 0 24 24"><path d="M5 7h14M5 17h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2.6" fill="var(--nav-bg)" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="17" r="2.6" fill="var(--nav-bg)" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.8h4V7M7 7l.8 12h8.4L17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<main id="app">
+
+  <!-- ============ FARE ============ -->
+  <section class="view" id="view-fare">
+    <header class="hero" id="hero">
+      <div class="hero-top">
+        <span class="tariff-chip" id="tariffChip"></span>
+        <span class="hero-clock" id="heroClock"></span>
+      </div>
+      <div class="hero-label">Fare</div>
+      <div class="hero-total" id="heroTotal" aria-live="polite"></div>
+      <div class="hero-sub" id="heroSub"></div>
+    </header>
+
+    <div class="content">
+      <div class="field-label" id="tariffLabel">Tariff</div>
+      <div class="segmented" id="tariffSeg" role="radiogroup" aria-labelledby="tariffLabel">
+        <button type="button" role="radio" data-value="auto">Auto</button>
+        <button type="button" role="radio" data-value="day">Day</button>
+        <button type="button" role="radio" data-value="night">Night</button>
+      </div>
+
+      <div class="segmented segmented-quiet" id="modeSeg" role="radiogroup" aria-label="How to set the fare">
+        <button type="button" role="radio" data-value="calc">Calculate from distance</button>
+        <button type="button" role="radio" data-value="manual">Type the fare</button>
+      </div>
+
+      <div class="card" id="calcCard">
+        <label class="row">
+          <span class="row-label">Distance</span>
+          <span class="input-wrap"><input id="inKm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" autocomplete="off"><span class="unit">km</span></span>
+        </label>
+        <div class="quick" aria-label="Add distance">
+          <button type="button" data-add-km="1">+1 km</button>
+          <button type="button" data-add-km="5">+5 km</button>
+          <button type="button" data-add-km="10">+10 km</button>
+        </div>
+        <label class="row">
+          <span class="row-label">Waiting time</span>
+          <span class="input-wrap"><input id="inWait" type="number" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off"><span class="unit">min</span></span>
+        </label>
+        <label class="row">
+          <span class="row-label">Toll, parking, other</span>
+          <span class="input-wrap"><span class="unit unit-pre cur"></span><input id="inExtras" type="number" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off"></span>
+        </label>
+      </div>
+
+      <div class="card" id="manualCard" hidden>
+        <label class="row">
+          <span class="row-label">Fare</span>
+          <span class="input-wrap"><span class="unit unit-pre cur"></span><input id="inManual" type="number" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off"></span>
+        </label>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <span class="row-label">Date and time</span>
+          <button type="button" class="link" id="timeToggle"></button>
+        </div>
+        <div class="row row-inputs" id="timeEdit" hidden>
+          <input id="inDate" type="date" aria-label="Trip date">
+          <input id="inTime" type="time" aria-label="Trip time">
+        </div>
+        <label class="row">
+          <span class="row-label">Note</span>
+          <input id="inNote" class="note" type="text" maxlength="60" placeholder="Optional, e.g. Airport" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+
+    <div class="action-bar">
+      <button type="button" class="primary" id="addBtn"></button>
+    </div>
+  </section>
+
+  <!-- ============ TRIPS ============ -->
+  <section class="view" id="view-trips" hidden>
+    <header class="bar"><h1>Trips</h1><button type="button" class="bar-btn" id="shareBtn">Share</button></header>
+    <div class="content">
+      <div class="tiles" id="tiles"></div>
+      <div id="tripList"></div>
+      <button type="button" class="danger-link" id="clearBtn" hidden>Delete all trips</button>
+    </div>
+  </section>
+
+  <!-- ============ RATES ============ -->
+  <section class="view" id="view-rates" hidden>
+    <header class="bar"><h1>Rates</h1></header>
+    <div class="content">
+      <div class="rate-head rate-day"><svg class="ic"><use href="#i-sun"/></svg> Day fare</div>
+      <div class="card" data-rates="day"></div>
+
+      <div class="rate-head rate-night"><svg class="ic"><use href="#i-moon"/></svg> Night fare</div>
+      <div class="card" data-rates="night"></div>
+
+      <div class="rate-head">Night hours</div>
+      <div class="card">
+        <label class="row"><span class="row-label">Night fare starts</span><input id="setNightStart" type="time"></label>
+        <label class="row"><span class="row-label">Night fare ends</span><input id="setNightEnd" type="time"></label>
+      </div>
+
+      <div class="rate-head">General</div>
+      <div class="card">
+        <label class="row"><span class="row-label">Currency symbol</span><input id="setCurrency" class="short" type="text" maxlength="4" autocomplete="off"></label>
+        <label class="row"><span class="row-label">Round fare to whole number</span><input id="setRound" type="checkbox" class="switch"></label>
+      </div>
+      <button type="button" class="danger-link" id="resetBtn">Reset rates to defaults</button>
+    </div>
+  </section>
+</main>
+
+<nav class="nav" id="nav">
+  <button type="button" data-view="fare"><svg class="ic"><use href="#i-meter"/></svg><span>Fare</span></button>
+  <button type="button" data-view="trips"><svg class="ic"><use href="#i-list"/></svg><span>Trips</span><b class="badge" id="navBadge" hidden></b></button>
+  <button type="button" data-view="rates"><svg class="ic"><use href="#i-rates"/></svg><span>Rates</span></button>
+</nav>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button type="button" id="toastAction" hidden></button></div>
+
+<div class="scrim" id="confirm" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmBody"></p>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" id="confirmCancel">Cancel</button>
+      <button type="button" class="danger" id="confirmOk"></button>
+    </div>
+  </div>
+</div>
+
+<script src="fare.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
