@@ -21,10 +21,34 @@ jobs:
       - name: Check fare rules
         run: node tests/fare.test.js
 
+      - name: Load signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$SIGNING_PASSWORD" ]; then
+            echo "::warning::Signing secrets are not set. This APK is signed with a throwaway key and will not install over an earlier build."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 --decode --ignore-garbage > "$RUNNER_TEMP/cabfare.p12"
+          if ! keytool -list -keystore "$RUNNER_TEMP/cabfare.p12" -storepass "$SIGNING_PASSWORD" -alias cabfare > /dev/null; then
+            echo "::error::The signing secrets do not match. Check SIGNING_KEYSTORE_BASE64 and SIGNING_PASSWORD."
+            exit 1
+          fi
+          echo "SIGNING_KEYSTORE_FILE=$RUNNER_TEMP/cabfare.p12" >> "$GITHUB_ENV"
+          echo "Using the fixed signing key."
+
       - name: Build debug APK
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
+
+      - name: Show signing certificate
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | grep -i "SHA-256"
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk CabFare.apk

@@ -2,6 +2,13 @@ plugins {
     id "com.android.application"
 }
 
+// A fixed signing key lets a new build install over the old one without
+// losing saved trips. The key is supplied by the build (see the workflow);
+// without it the build falls back to Android's throwaway debug key.
+def keystorePath = System.getenv("SIGNING_KEYSTORE_FILE")
+def signingPassword = System.getenv("SIGNING_PASSWORD")
+def hasFixedKey = keystorePath && signingPassword && new File(keystorePath).exists()
+
 android {
     namespace "com.cabfare.app"
     compileSdk 35
@@ -14,7 +21,23 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        if (hasFixedKey) {
+            fixed {
+                storeFile new File(keystorePath)
+                storePassword signingPassword
+                keyAlias "cabfare"
+                keyPassword signingPassword
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (hasFixedKey) {
+                signingConfig signingConfigs.fixed
+            }
+        }
         release {
             minifyEnabled false
         }

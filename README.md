@@ -20,6 +20,15 @@ Every push builds the APK on GitHub Actions.
 2. Download the **CabFare-apk** artifact and unzip it.
 3. Copy `CabFare.apk` to the phone and open it. Android asks you to allow installs from that source the first time.
 
+### Signing key
+
+So that a new build installs over the old one and keeps your saved trips, the workflow signs the APK with a fixed key held in two repository secrets (Settings > Secrets and variables > Actions):
+
+- `SIGNING_KEYSTORE_BASE64`: the keystore file, base64 encoded (key alias `cabfare`)
+- `SIGNING_PASSWORD`: its password
+
+Keep a private backup of both. If the key is lost, later builds can only be installed after uninstalling the app. Without the secrets the build still works but uses a throwaway key and prints a warning.
+
 To build on your own computer, with Android Studio or the Android SDK installed:
 
 ```
