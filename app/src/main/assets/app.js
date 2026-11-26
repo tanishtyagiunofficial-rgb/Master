@@ -3,6 +3,7 @@
 
   var SETTINGS_KEY = 'cabfare.settings.v1';
   var TRIPS_KEY = 'cabfare.trips.v1';
+  var THEME_KEY = 'cabfare.theme';
 
   var $ = function (id) { return document.getElementById(id); };
   var each = function (list, fn) { Array.prototype.forEach.call(list, fn); };
@@ -31,6 +32,7 @@
 
   function loadSettings() {
     var d = clone(Fare.DEFAULT_SETTINGS);
+    d.budget = 0;
     var s = load(SETTINGS_KEY, null);
     if (!s) return d;
     ['day', 'night'].forEach(function (t) {
@@ -42,6 +44,7 @@
     if (/^\d\d:\d\d$/.test(s.nightEnd)) d.nightEnd = s.nightEnd;
     if (typeof s.currency === 'string') d.currency = s.currency;
     if (typeof s.round === 'boolean') d.round = s.round;
+    if (isFinite(parseFloat(s.budget)) && parseFloat(s.budget) > 0) d.budget = parseFloat(s.budget);
     return d;
   }
 
@@ -131,6 +134,75 @@
       if (t < 1) node._raf = requestAnimationFrame(frame);
     }
     node._raf = requestAnimationFrame(frame);
+  }
+
+  /* ---------------- effects ---------------- */
+
+  function buzz() {
+    try { if (window.AndroidBridge && AndroidBridge.haptic) AndroidBridge.haptic(); } catch (e) {}
+  }
+
+  var CONFETTI = ['#FFB703', '#FF9E1B', '#FFD34D', '#3D5FA8', '#6F93E0', '#1E9E5A', '#FFFFFF'];
+
+  /** A short burst of confetti out of `origin` (an element), for a saved fare. */
+  function confetti(origin) {
+    if (reducedMotion) return;
+    var r = origin ? origin.getBoundingClientRect() : null;
+    var box = el('div', 'confetti');
+    box.style.left = (r && r.width ? r.left + r.width / 2 : window.innerWidth / 2) + 'px';
+    box.style.top = (r && r.width ? r.top + r.height / 2 : window.innerHeight * 0.6) + 'px';
+    for (var i = 0; i < 30; i++) {
+      var bit = el('i');
+      var angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.2;
+      var dist = 70 + Math.random() * 130;
+      bit.style.setProperty('--dx', Math.round(Math.cos(angle) * dist) + 'px');
+      bit.style.setProperty('--dy', Math.round(Math.sin(angle) * dist) + 'px');
+      bit.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 720) + 'deg');
+      bit.style.background = CONFETTI[i % CONFETTI.length];
+      bit.style.animationDelay = Math.round(Math.random() * 90) + 'ms';
+      box.appendChild(bit);
+    }
+    document.body.appendChild(box);
+    setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 1400);
+  }
+
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.keys(attrs || {}).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+    return node;
+  }
+
+  /* ---------------- theme ---------------- */
+
+  var themePref = 'auto';
+  try { themePref = localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) {}
+  if (['auto', 'light', 'dark'].indexOf(themePref) < 0) themePref = 'auto';
+  var darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function systemDark() {
+    if (window.AndroidBridge && AndroidBridge.systemDark) return !!AndroidBridge.systemDark();
+    return !!(darkQuery && darkQuery.matches);
+  }
+
+  function isDark() { return themePref === 'dark' || (themePref === 'auto' && systemDark()); }
+
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', isDark() ? 'dark' : 'light');
+    $('themePill').setAttribute('aria-checked', isDark() ? 'true' : 'false');
+    setSegment($('themeSeg'), themePref);
+  }
+
+  /** Switches theme; the new one opens in a circle from `origin` where the WebView supports it. */
+  function setTheme(pref, origin) {
+    var was = isDark();
+    themePref = pref;
+    try { localStorage.setItem(THEME_KEY, pref); } catch (e) {}
+    if (was === isDark() || reducedMotion || !document.startViewTransition || !origin) { applyTheme(); return; }
+    var r = origin.getBoundingClientRect();
+    var root = document.documentElement;
+    root.style.setProperty('--rx', Math.round(r.left + r.width / 2) + 'px');
+    root.style.setProperty('--ry', Math.round(r.top + r.height / 2) + 'px');
+    document.startViewTransition(applyTheme);
   }
 
   /* ---------------- trip data ---------------- */
@@ -319,12 +391,14 @@
     resetForm();
     flashAdded();
     refresh();
-    announceAdded(trip);
+    announceAdded(trip, $('addBtn'));
   }
 
-  function announceAdded(trip) {
+  function announceAdded(trip, origin) {
     var when = new Date(trip.ts);
     replay($('navBadge'), 'bump');
+    confetti(origin);
+    buzz();
     toast('Added ' + money(trip.fare) + ' · ' + fmtDay(when) + ', ' + fmtTime(when), 'Undo', function () {
       removeTrip(trip.id);
     });
@@ -358,7 +432,9 @@
     mark.setAttribute('title', night ? 'Night fare' : 'Day fare');
     row.appendChild(mark);
 
-    var main = el('div', 'trip-main');
+    var main = el('button', 'trip-main');
+    main.type = 'button';
+    main.setAttribute('aria-label', 'Edit trip at ' + fmtTime(when) + ', ' + money(t.fare));
     main.appendChild(el('div', 'trip-time', fmtTime(when)));
     main.appendChild(el('div', 'trip-detail', tripDetail(t)));
     row.appendChild(main);
@@ -368,6 +444,9 @@
     del.type = 'button';
     del.setAttribute('aria-label', 'Delete trip at ' + fmtTime(when) + ', ' + money(t.fare));
     del.appendChild(icon('i-trash'));
+    row.addEventListener('click', function (e) {
+      if (!e.target.closest('.trip-del')) openAdd('edit', t);
+    });
     del.addEventListener('click', function () {
       removeTrip(t.id);
       toast('Trip deleted', 'Undo', function () {
@@ -499,7 +578,7 @@
 
   /* ---------------- add fare sheet ---------------- */
 
-  var add = { mode: 'now', tariff: 'auto', timer: null };
+  var add = { mode: 'now', tariff: 'auto', timer: null, editId: null };
 
   function addWhen() {
     if (add.mode === 'now') return new Date();
@@ -524,7 +603,9 @@
 
     var amount = applyRounding(Fare.num($('addAmount').value));
     $('addSave').disabled = !(amount > 0);
-    $('addSave').textContent = amount > 0 ? 'Save ' + money(amount) : 'Save fare';
+    $('addSave').textContent = amount > 0
+      ? (add.mode === 'edit' ? 'Save changes · ' : 'Save ') + money(amount)
+      : 'Save fare';
   }
 
   function openAdd(mode, key) {
@@ -533,19 +614,29 @@
     $('addAmount').value = '';
     $('addNote').value = '';
     $('addError').hidden = true;
-    $('addTitle').textContent = mode === 'now' ? 'Add fare now' : 'Add fare';
+    $('addTitle').textContent = mode === 'now' ? 'Add fare now' : (mode === 'edit' ? 'Edit fare' : 'Add fare');
     $('addWhen').hidden = mode === 'now';
+    add.editId = null;
+    var now = new Date();
+    $('addDate').max = dateKey(now);
     if (mode === 'date') {
-      var now = new Date();
-      $('addDate').max = dateKey(now);
       $('addDate').value = key;
       $('addTime').value = key === dateKey(now) ? timeKey(now) : '12:00';
+    } else if (mode === 'edit') {
+      var trip = key; // the trip being edited
+      var at = new Date(trip.ts);
+      add.editId = trip.id;
+      add.tariff = trip.tariff === 'night' ? 'night' : 'day';
+      $('addAmount').value = trip.fare;
+      $('addNote').value = trip.note || '';
+      $('addDate').value = dateKey(at);
+      $('addTime').value = timeKey(at);
     }
     renderAdd();
     openLayer('addSheet');
     clearInterval(add.timer);
     if (mode === 'now') add.timer = setInterval(renderAdd, 1000);
-    setTimeout(function () { $('addAmount').focus(); }, 60);
+    if (mode !== 'edit') setTimeout(function () { $('addAmount').focus(); }, 60);
   }
 
   function saveAdd() {
@@ -560,13 +651,24 @@
       $('addError').hidden = false;
       return;
     }
-    var trip = {
-      id: newId(),
+    var fields = {
       ts: when.getTime(),
       tariff: add.tariff !== 'auto' ? add.tariff : tariffAt(when),
       fare: amount,
       note: $('addNote').value.trim()
     };
+    var trip = null;
+    if (add.mode === 'edit') {
+      trips.forEach(function (t) { if (t.id === add.editId) trip = t; });
+      if (trip) Object.keys(fields).forEach(function (k) { trip[k] = fields[k]; });
+      saveTrips();
+      closeLayer('addSheet');
+      refresh();
+      toast('Fare updated');
+      return;
+    }
+    trip = fields;
+    trip.id = newId();
     trips.push(trip);
     saveTrips();
     closeLayer('addSheet');
@@ -575,7 +677,7 @@
     cal.m = when.getMonth();
     cal.selected = dateKey(when);
     refresh(cal.selected);
-    announceAdded(trip);
+    announceAdded(trip, $('fabNow'));
   }
 
   /* ---------------- month total popup ---------------- */
@@ -685,6 +787,8 @@
 
   /* ---------------- trips screen ---------------- */
 
+  var tripFilter = 'all';
+
   function tile(label, data, onTap) {
     var t = el(onTap ? 'button' : 'div', 'tile');
     if (onTap) { t.type = 'button'; t.addEventListener('click', onTap); }
@@ -717,6 +821,7 @@
     list.textContent = '';
     $('clearBtn').hidden = trips.length === 0;
     $('shareBtn').hidden = trips.length === 0;
+    $('filters').hidden = trips.length === 0;
 
     if (!trips.length) {
       var empty = el('div', 'empty');
@@ -731,7 +836,19 @@
       return;
     }
 
-    var sorted = trips.slice().sort(function (a, b) { return b.ts - a.ts; });
+    var query = $('tripSearch').value.trim().toLowerCase();
+    setSegment($('filterSeg'), tripFilter);
+    var sorted = trips.filter(function (t) {
+      if (tripFilter !== 'all' && (t.tariff === 'night' ? 'night' : 'day') !== tripFilter) return false;
+      return !query || (t.note || '').toLowerCase().indexOf(query) >= 0;
+    }).sort(function (a, b) { return b.ts - a.ts; });
+    if (!sorted.length) {
+      var none = el('div', 'empty');
+      none.appendChild(el('strong', null, 'No trips match'));
+      none.appendChild(document.createTextNode('Try a different search or show all trips.'));
+      list.appendChild(none);
+      return;
+    }
     var groups = [];
     sorted.forEach(function (t) {
       var key = dateKey(new Date(t.ts));
@@ -766,7 +883,7 @@
     });
     rows.push(['Total', '', '', '', '', '', sumOf(trips), '']);
     var text = rows.map(function (r) { return r.map(csvCell).join(','); }).join('\n');
-    var subject = 'Cab trips (' + trips.length + ')';
+    var subject = 'FarePulse trips (' + trips.length + ')';
 
     if (window.AndroidBridge && AndroidBridge.share) {
       AndroidBridge.share(subject, text);
@@ -775,6 +892,267 @@
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(function () { toast('Trips copied'); });
     }
+  }
+
+  /* ---------------- insights screen ---------------- */
+
+  function tipLine(node, strong, text, muted) {
+    node.textContent = '';
+    node.appendChild(el('strong', null, strong + '  '));
+    node.appendChild(document.createTextNode(text + ' '));
+    if (muted) node.appendChild(el('em', null, muted));
+  }
+
+  /** A ring drawn as SVG arcs. parts: [{ value, cls }] out of `whole`. Returns the arcs so they can be animated in. */
+  function drawRing(host, radius, width, parts, whole, trackCls) {
+    var size = (radius + width) * 2, c = size / 2, len = 2 * Math.PI * radius;
+    var svg = svgEl('svg', { viewBox: '0 0 ' + size + ' ' + size, 'aria-hidden': 'true' });
+    svg.appendChild(svgEl('circle', { cx: c, cy: c, r: radius, 'stroke-width': width, 'class': trackCls }));
+    var gap = parts.filter(function (p) { return p.value > 0; }).length > 1 ? 2 : 0;
+    var offset = 0, arcs = [];
+    parts.forEach(function (p) {
+      if (!(p.value > 0)) return;
+      var span = p.value / whole * len;
+      var arc = svgEl('circle', { cx: c, cy: c, r: radius, 'stroke-width': width, 'class': p.cls,
+        'stroke-dasharray': '0 ' + len, 'stroke-dashoffset': -offset });
+      arc._dash = Math.max(0.5, span - gap) + ' ' + len;
+      offset += span;
+      svg.appendChild(arc);
+      arcs.push(arc);
+    });
+    host.textContent = '';
+    host.appendChild(svg);
+    setTimeout(function () {
+      arcs.forEach(function (a) { a.setAttribute('stroke-dasharray', a._dash); });
+    }, reducedMotion ? 0 : 80);
+  }
+
+  function renderBudget(total, now) {
+    var budget = settings.budget || 0;
+    var card = $('budgetCard');
+    var ring = $('budgetRing');
+    var over = budget > 0 && total > budget;
+    card.classList.toggle('is-over', over);
+    drawRing(ring, 38, 8, budget > 0 ? [{ value: Math.min(total, budget), cls: 'ring-arc' }] : [], budget || 1, 'ring-track');
+    ring.appendChild(el('div', 'ring-label', budget > 0 ? Math.round(total / budget * 100) + '%' : '–'));
+
+    if (!budget) {
+      $('budgetTitle').textContent = money(total) + ' this month';
+      $('budgetSub').textContent = 'Set a budget to see how much is left.';
+      $('budgetBtn').textContent = 'Set budget';
+      return;
+    }
+    var daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
+    $('budgetTitle').textContent = money(total) + ' of ' + money(budget);
+    $('budgetSub').textContent = over
+      ? 'Over budget by ' + money(round2(total - budget))
+      : money(round2(budget - total)) + ' left, about ' + money(applyRounding((budget - total) / daysLeft)) +
+        ' a day for ' + plural(daysLeft, 'day');
+    $('budgetBtn').textContent = 'Change budget';
+  }
+
+  function renderDonut(list, total, now) {
+    var dayList = list.filter(function (t) { return t.tariff !== 'night'; });
+    var nightList = list.filter(function (t) { return t.tariff === 'night'; });
+    var dayTotal = sumOf(dayList), nightTotal = sumOf(nightList);
+    $('donutKicker').textContent = 'Day and night, ' + now.toLocaleDateString(undefined, { month: 'long' });
+
+    var donut = $('donut');
+    drawRing(donut, 48, 14, [{ value: dayTotal, cls: 'donut-seg seg-day' }, { value: nightTotal, cls: 'donut-seg seg-night' }],
+      total || 1, 'ring-track');
+    var center = el('div', 'donut-center');
+    center.appendChild(el('small', null, 'Total'));
+    var figure = el('strong');
+    center.appendChild(figure);
+    center.appendChild(el('small', null, plural(list.length, 'trip')));
+    donut.appendChild(center);
+    countTo(figure, total);
+
+    var legend = $('donutLegend');
+    legend.textContent = '';
+    [['dot-day', 'Day', dayTotal, dayList.length], ['dot-night', 'Night', nightTotal, nightList.length]].forEach(function (s) {
+      var item = el('div', 'dl-item');
+      item.appendChild(el('i', 'dot ' + s[0]));
+      item.appendChild(el('span', 'dl-name', s[1]));
+      item.appendChild(el('span', 'dl-val', money(s[2])));
+      item.appendChild(el('span', 'dl-sub', (total > 0 ? Math.round(s[2] / total * 100) : 0) + '% · ' + plural(s[3], 'trip')));
+      legend.appendChild(item);
+    });
+  }
+
+  function renderWeek(now) {
+    var days = [];
+    for (var back = 6; back >= 0; back--) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+      days.push({ date: d, key: dateKey(d), day: 0, night: 0, count: 0 });
+    }
+    var index = {};
+    days.forEach(function (d) { index[d.key] = d; });
+    trips.forEach(function (t) {
+      var d = index[dateKey(new Date(t.ts))];
+      if (!d) return;
+      d[t.tariff === 'night' ? 'night' : 'day'] += t.fare;
+      d.count++;
+    });
+    var max = 0;
+    days.forEach(function (d) { max = Math.max(max, d.day + d.night); });
+
+    var chart = $('weekChart');
+    chart.textContent = '';
+    var axis = chart.nextElementSibling && chart.nextElementSibling.className === 'week-axis'
+      ? chart.nextElementSibling : null;
+    if (!axis) {
+      axis = el('div', 'week-axis');
+      chart.parentNode.insertBefore(axis, chart.nextSibling);
+    }
+    axis.textContent = '';
+
+    function pick(d, button) {
+      each(chart.querySelectorAll('button'), function (b) { b.classList.remove('is-active'); });
+      button.classList.add('is-active');
+      var total = round2(d.day + d.night);
+      if (!d.count) { tipLine($('weekTip'), fmtDay(d.date), 'No fares'); return; }
+      var bits = [];
+      if (d.day) bits.push('Day ' + money(round2(d.day)));
+      if (d.night) bits.push('Night ' + money(round2(d.night)));
+      tipLine($('weekTip'), fmtDay(d.date), money(total), '· ' + bits.join(' · '));
+    }
+
+    var first = null;
+    days.forEach(function (d, i) {
+      var col = el('button');
+      col.type = 'button';
+      var total = d.day + d.night;
+      col.setAttribute('aria-label', fmtDate(d.date) + ', ' + (d.count ? money(round2(total)) : 'no fares'));
+      if (total > 0) {
+        var stack = el('div', 'week-stack');
+        stack.style.height = Math.max(5, total / max * 92) + '%';
+        stack.style.animationDelay = (120 + i * 60) + 'ms';
+        if (d.night) { var n = el('i', 'seg-night'); n.style.flexGrow = d.night; stack.appendChild(n); }
+        if (d.day) { var s = el('i', 'seg-day'); s.style.flexGrow = d.day; stack.appendChild(s); }
+        col.appendChild(stack);
+      }
+      col.addEventListener('click', function () { pick(d, col); });
+      chart.appendChild(col);
+      var label = el('span', i === 6 ? 'is-today' : null, d.date.toLocaleDateString(undefined, { weekday: 'short' }));
+      axis.appendChild(label);
+      if (i === 6) first = [d, col];
+    });
+    pick(first[0], first[1]);
+  }
+
+  function renderTrend(now) {
+    var months = [];
+    for (var back = 5; back >= 0; back--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+      var list = monthTrips(d.getFullYear(), d.getMonth());
+      months.push({ date: d, total: sumOf(list), count: list.length });
+    }
+    var max = 0;
+    months.forEach(function (m) { max = Math.max(max, m.total); });
+    max = max || 1;
+
+    var host = $('trendChart');
+    var W = host.clientWidth || 300, H = 120, top = 12, bottom = H - 8;
+    var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Total fare for each of the last 6 months' });
+    [top, (top + bottom) / 2, bottom].forEach(function (y) {
+      svg.appendChild(svgEl('line', { x1: 0, x2: W, y1: y, y2: y, 'class': 'trend-grid' }));
+    });
+    var pts = months.map(function (m, i) {
+      return { x: (i + 0.5) / 6 * W, y: bottom - m.total / max * (bottom - top), m: m };
+    });
+    var path = pts.map(function (p, i) { return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+    svg.appendChild(svgEl('path', { d: path + ' L' + pts[5].x.toFixed(1) + ' ' + bottom + ' L' + pts[0].x.toFixed(1) + ' ' + bottom + ' Z', 'class': 'trend-area' }));
+    svg.appendChild(svgEl('path', { d: path, 'class': 'trend-line', pathLength: 1 }));
+
+    var dots = [];
+    function pick(i) {
+      dots.forEach(function (dot, n) { dot.setAttribute('class', 'trend-dot' + (n === i ? ' is-active' : '')); });
+      var m = months[i];
+      tipLine($('trendTip'), fmtMonth(m.date.getFullYear(), m.date.getMonth()),
+        m.count ? money(m.total) : 'No fares', m.count ? '· ' + plural(m.count, 'trip') : '');
+    }
+    pts.forEach(function (p, i) {
+      var dot = svgEl('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 5, 'class': 'trend-dot' });
+      dot.style.animationDelay = (300 + i * 110) + 'ms';
+      svg.appendChild(dot);
+      dots.push(dot);
+    });
+    pts.forEach(function (p, i) {
+      var hit = svgEl('rect', { x: (p.x - W / 12).toFixed(1), y: 0, width: (W / 6).toFixed(1), height: H, 'class': 'trend-hit' });
+      hit.addEventListener('click', function () { pick(i); });
+      svg.appendChild(hit);
+    });
+    host.textContent = '';
+    host.appendChild(svg);
+
+    var axis = $('trendAxis');
+    axis.textContent = '';
+    months.forEach(function (m) {
+      axis.appendChild(el('span', null, m.date.toLocaleDateString(undefined, { month: 'short' })));
+    });
+    pick(5);
+  }
+
+  function renderHighlights(now, monthTotal) {
+    // Days in a row with at least one fare, ending today (or yesterday if today has none yet).
+    var have = {};
+    trips.forEach(function (t) { have[dateKey(new Date(t.ts))] = true; });
+    var cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (!have[dateKey(cursor)]) cursor.setDate(cursor.getDate() - 1);
+    var streak = 0;
+    while (have[dateKey(cursor)]) { streak++; cursor.setDate(cursor.getDate() - 1); }
+
+    var byWeekday = [0, 0, 0, 0, 0, 0, 0], biggest = trips[0];
+    trips.forEach(function (t) {
+      byWeekday[new Date(t.ts).getDay()] += t.fare;
+      if (t.fare > biggest.fare) biggest = t;
+    });
+    var busiest = byWeekday.indexOf(Math.max.apply(null, byWeekday));
+    var weekdayName = new Date(2024, 0, 7 + busiest).toLocaleDateString(undefined, { weekday: 'long' }); // 7 Jan 2024 is a Sunday
+
+    // This month so far against the same days of last month.
+    var lastStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+    var lastEnd = Math.min(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate() + 1).getTime(),
+      new Date(now.getFullYear(), now.getMonth(), 1).getTime());
+    var lastTotal = sumOf(trips.filter(function (t) { return t.ts >= lastStart && t.ts < lastEnd; }));
+    var change = lastTotal > 0 ? Math.round((monthTotal - lastTotal) / lastTotal * 100) : null;
+
+    var all = sumOf(trips);
+    var items = [
+      ['Logging streak', plural(streak, 'day'), streak ? 'in a row with a fare' : 'Add a fare today to start one'],
+      ['Against last month', change === null ? '–' : (change > 0 ? '+' : '') + change + '%',
+        change === null ? 'Nothing saved by this date last month' : 'vs ' + money(lastTotal) + ' by this date'],
+      ['Average fare', money(applyRounding(all / trips.length)), 'across ' + plural(trips.length, 'trip')],
+      ['Biggest fare', money(biggest.fare), fmtDay(new Date(biggest.ts))],
+      ['Busiest weekday', weekdayName, money(round2(byWeekday[busiest])) + ' in total'],
+      ['All time', money(all), plural(Object.keys(have).length, 'day') + ' with fares']
+    ];
+    var grid = $('highlights');
+    grid.textContent = '';
+    items.forEach(function (it, i) {
+      var box = el('div', 'hl');
+      box.style.animationDelay = (200 + i * 50) + 'ms';
+      box.appendChild(el('div', 'hl-label', it[0]));
+      box.appendChild(el('div', 'hl-value', it[1]));
+      box.appendChild(el('div', 'hl-sub', it[2]));
+      grid.appendChild(box);
+    });
+  }
+
+  function renderInsights() {
+    var has = trips.length > 0;
+    $('insEmpty').hidden = has;
+    $('insBody').hidden = !has;
+    if (!has) return;
+    var now = new Date();
+    var list = monthTrips(now.getFullYear(), now.getMonth());
+    var total = sumOf(list);
+    renderBudget(total, now);
+    renderDonut(list, total, now);
+    renderWeek(now);
+    renderTrend(now);
+    renderHighlights(now, total);
   }
 
   /* ---------------- rates screen ---------------- */
@@ -820,6 +1198,7 @@
     $('setNightEnd').value = settings.nightEnd;
     $('setCurrency').value = settings.currency;
     $('setRound').checked = settings.round;
+    $('setBudget').value = settings.budget || '';
     paintCurrency();
   }
 
@@ -894,17 +1273,20 @@
 
   /* ---------------- navigation ---------------- */
 
-  var VIEWS = ['fare', 'calendar', 'trips', 'rates'];
+  var VIEWS = ['fare', 'calendar', 'trips', 'insights', 'rates'];
   var currentView = 'fare';
+  var beforeRates = 'fare';
 
   /** Redraws whatever depends on the saved trips or settings. */
   function refresh(justAddedKey) {
     renderTrips();
     renderFare();
     if (currentView === 'calendar') renderCalendar(0, justAddedKey);
+    if (currentView === 'insights') renderInsights();
   }
 
   function show(view) {
+    if (view === 'rates' && currentView !== 'rates') beforeRates = currentView;
     currentView = view;
     VIEWS.forEach(function (v) { $('view-' + v).hidden = v !== view; });
     each($('nav').querySelectorAll('button'), function (b) {
@@ -916,13 +1298,18 @@
     if (view === 'trips') renderTrips();
     if (view === 'fare') renderFare();
     if (view === 'calendar') renderCalendar();
+    if (view === 'insights') renderInsights();
   }
+
+  // Called by the Android shell when the phone switches between light and dark.
+  window.cabfareTheme = function () { applyTheme(); };
 
   // Called by the Android back button. Returns true when the app handled it.
   window.cabfareBack = function () {
     for (var i = 0; i < LAYERS.length; i++) {
       if (!$(LAYERS[i]).hidden) { closeLayer(LAYERS[i]); return true; }
     }
+    if (currentView === 'rates') { show(beforeRates); return true; }
     if (currentView !== 'fare') { show('fare'); return true; }
     return false;
   };
@@ -973,7 +1360,7 @@
   $('calNext').addEventListener('click', function () { moveMonth(1); });
   $('calToday').addEventListener('click', goToday);
   $('calTitle').addEventListener('click', function () { openMonth(cal.y, cal.m); });
-  $('fabNow').addEventListener('click', function () { openAdd('now'); });
+  $('fabNow').addEventListener('click', function () { buzz(); openAdd('now'); });
 
   var swipeX = null, swipeY = null;
   $('calGrid').addEventListener('touchstart', function (e) {
@@ -1019,7 +1406,7 @@
   });
 
   $('nav').addEventListener('click', function (e) {
-    var b = e.target.closest('button');
+    var b = e.target.closest('button[data-view]');
     if (b) show(b.getAttribute('data-view'));
   });
 
@@ -1038,11 +1425,57 @@
     settingsChanged();
   });
 
+  $('setBudget').addEventListener('change', function () {
+    var v = parseFloat(this.value);
+    settings.budget = isFinite(v) && v > 0 ? v : 0;
+    this.value = settings.budget || '';
+    settingsChanged();
+  });
+
+  // theme
+  $('themePill').addEventListener('click', function () {
+    buzz();
+    setTheme(isDark() ? 'light' : 'dark', this);
+  });
+  onSegment('themeSeg', function (v) { setTheme(v, $('themeSeg')); });
+  if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener('change', applyTheme);
+
+  // rates and settings open from the gear on every screen
+  each(document.querySelectorAll('[data-open-rates]'), function (b) {
+    b.addEventListener('click', function () { show('rates'); });
+  });
+  $('ratesDone').addEventListener('click', function () { show(beforeRates); });
+  $('budgetBtn').addEventListener('click', function () {
+    show('rates');
+    var input = $('setBudget');
+    input.scrollIntoView({ block: 'center' });
+    input.focus();
+  });
+
+  // trips search and filter
+  onSegment('filterSeg', function (v) { tripFilter = v; renderTrips(); });
+  $('tripSearch').addEventListener('input', renderTrips);
+
+  // a few more stars for the night sky
+  (function () {
+    var sky = document.querySelector('.stars');
+    var spots = [[6, 8], [20, 14], [10, 22], [36, 36], [4, 50], [18, 66], [48, 76], [28, 90], [62, 40], [8, 72], [50, 24], [14, 96]];
+    spots.forEach(function (p, i) {
+      var star = el('i', 'extra');
+      star.style.top = p[0] + '%';
+      star.style.left = p[1] + '%';
+      star.style.animationDelay = (i * 0.37 % 3) + 's';
+      sky.appendChild(star);
+    });
+  })();
+
   $('resetBtn').addEventListener('click', function () {
     confirmSheet('Reset rates?',
       'Day fare, night fare and night hours go back to the starting values. Your saved trips are kept.',
       'Reset', function () {
+        var budget = settings.budget;
         settings = clone(Fare.DEFAULT_SETTINGS);
+        settings.budget = budget;
         save(SETTINGS_KEY, settings);
         buildRates();
         refresh();
@@ -1059,9 +1492,10 @@
   // Keep the clock and the automatic day/night switch current.
   setInterval(function () { if (currentView === 'fare') renderFare(); }, 15000);
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) refresh();
+    if (!document.hidden) { applyTheme(); refresh(); }
   });
 
+  applyTheme();
   buildRates();
   renderTrips();
   show('fare');

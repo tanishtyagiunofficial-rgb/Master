@@ -1,4 +1,4 @@
-# Cab Fare
+# FarePulse
 
 An Android app that works out a cab fare with separate day and night rates and keeps a log of every trip with its date, time and fare.
 
@@ -12,7 +12,12 @@ An Android app that works out a cab fare with separate day and night rates and k
 - **Add fare now.** One button stamps a fare with the exact current date and time.
 - **Month total popup.** Tap the month total to see the total fare for the month, the day/night split, fare by date, and the best day.
 - **Trip log.** Trips are grouped by day with totals for today, this week and this month. Delete a trip (with undo) or share the whole log as CSV text.
-- **Your rates.** Change every rate, the night hours, the currency symbol and rounding on the Rates tab.
+- **Quick add.** The round + button in the bottom bar adds a fare from any screen.
+- **Edit and find trips.** Tap a trip to change its fare, date, time, tariff or note. Search notes and filter by day or night fare.
+- **Insights.** Day and night split for the month, the last 7 days, the last 6 months, a logging streak, your busiest weekday and more.
+- **Monthly budget.** Set a budget and see how much is left and what that allows per day.
+- **Day and night theme.** Switch with the sun and moon toggle, or let it follow the phone.
+- **Your rates.** Change every rate, the night hours, the currency symbol and rounding from the gear button.
 
 Everything is stored on the phone. The app needs no internet and no permissions.
 
@@ -21,8 +26,8 @@ Everything is stored on the phone. The app needs no internet and no permissions.
 Every push builds the APK on GitHub Actions.
 
 1. Open the repository's **Actions** tab and pick the latest **Build APK** run.
-2. Download the **CabFare-apk** artifact and unzip it.
-3. Copy `CabFare.apk` to the phone and open it. Android asks you to allow installs from that source the first time.
+2. Download the **FarePulse-apk** artifact and unzip it.
+3. Copy `FarePulse.apk` to the phone and open it. Android asks you to allow installs from that source the first time.
 
 ### Signing key
 
@@ -59,4 +64,4 @@ The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 | Per km after that | ₹15 | ₹19 |
 | Waiting, per minute | ₹1.50 | ₹2 |
 
-These are starting values, not official rates for any city. Set your own on the Rates tab.
+These are starting values, not official rates for any city. Set your own from the gear button.

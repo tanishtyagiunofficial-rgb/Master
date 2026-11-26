@@ -3,8 +3,10 @@ package com.cabfare.app;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -69,6 +71,13 @@ public class MainActivity extends Activity {
                 });
     }
 
+    /** The phone switched between light and dark: let the Auto theme follow. */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        web.evaluateJavascript("window.cabfareTheme && window.cabfareTheme()", null);
+    }
+
     @Override
     protected void onDestroy() {
         if (web != null) {
@@ -78,6 +87,19 @@ public class MainActivity extends Activity {
     }
 
     private final class Bridge {
+        /** True when the phone is set to its dark theme; the UI's Auto theme follows it. */
+        @JavascriptInterface
+        public boolean systemDark() {
+            int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            return mode == Configuration.UI_MODE_NIGHT_YES;
+        }
+
+        /** A light tap of feedback, e.g. when a fare is saved. Needs no permission. */
+        @JavascriptInterface
+        public void haptic() {
+            runOnUiThread(() -> web.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY));
+        }
+
         /** Opens the Android share sheet with plain text (used for trip export). */
         @JavascriptInterface
         public void share(String subject, String text) {
